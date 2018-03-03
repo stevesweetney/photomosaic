@@ -57,7 +57,7 @@ fn resize(tiles: Vec<DynamicImage>) -> Vec<AverageColor> {
 }
 
 // Select the tile that is the closest match to out target RGB color value
-fn nearest<'t>(target: &[u8;3], tiles: &'t Vec<AverageColor>) -> &'t DynamicImage {
+fn nearest<'t>(target: &[u8], tiles: &'t Vec<AverageColor>) -> &'t DynamicImage {
     let mut nearest_tile = &tiles[0].0;
     let mut smallest_dist = f64::MAX;
 
@@ -73,9 +73,59 @@ fn nearest<'t>(target: &[u8;3], tiles: &'t Vec<AverageColor>) -> &'t DynamicImag
 }
 
 // Euclidean distance between 2 RBG color values
-fn distance(p1: &[u8;3], p2: &[u8;3]) -> f64 {
+fn distance(p1: &[u8], p2: &[u8]) -> f64 {
     let square = |x| x * x;
-    let diff_sum = (square(p1[0] - p2[0]) + square(p1[1] - p2[1]) + square(p1[2] - p2[2])) as f64;
+    let diff_sum = (square(p1[0] as i32 - p2[0] as i32) 
+        + square(p1[1] as i32 - p2[1] as i32) 
+        + square(p1[2] as i32 - p2[2] as i32)) as f64;
 
     diff_sum.sqrt()
+}
+    let mut smallest_dist = f64::MAX;
+
+    for tile in tiles {
+        let dist = distance(target,&tile.1);
+        if dist < smallest_dist { 
+            smallest_dist = dist;
+            nearest_tile = &tile.0;
+        }
+    }
+
+    nearest_tile
+}
+
+// Euclidean distance between 2 RBG color values
+fn distance(p1: &[u8], p2: &[u8]) -> f64 {
+    let square = |x| x * x;
+    let diff_sum = (square(p1[0] as i32 - p2[0] as i32) 
+        + square(p1[1] as i32 - p2[1] as i32) 
+        + square(p1[2] as i32 - p2[2] as i32)) as f64;
+
+    diff_sum.sqrt()
+}
+
+#[cfg(test)]
+mod test {
+    use super::distance;
+
+    #[test]
+    fn test_distance() {
+        let black = &[0,0,0];
+        let white = &[255,255,255];
+
+        let p = &[121,30,177];
+        let q = &[237,22,88];
+
+        assert_eq!(distance(black,white).floor(),441.0);
+        assert_eq!(distance(p,q).floor(),146.0);
+    }
+
+    #[test]
+    fn test_distance_between_same_point() {
+        let p1 = &[2,3,5];
+        let p2 = &[235,110,75];
+
+        assert_eq!(distance(p1,p1),0.0);
+        assert_eq!(distance(p2,p2),0.0);
+    }
 }
