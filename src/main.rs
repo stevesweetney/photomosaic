@@ -47,7 +47,7 @@ fn resize(tiles: Vec<DynamicImage>) -> Vec<AverageColor> {
             g += channels[1] as usize;
             b += channels[2] as usize;
         }
-        let p_count = resized.pixels().count();
+        let p_count = (resized.width() * resized.height()) as usize;
         let (r,g,b) = (r/p_count,g/p_count,b/p_count);
 
         resized_tiles.push((resized,[r as u8,g as u8,b as u8]));
