@@ -1,10 +1,10 @@
 extern crate image;
 
-use std::fs;
+use std::fs::File;
 use std::io;
 use std::path::Path;
 use std::f64;
-use image::{DynamicImage, open, FilterType, GenericImage, Pixel};
+use image::{DynamicImage, open, FilterType, GenericImage, Pixel,RgbaImage,imageops};
 
 type GenError = Box<std::error::Error>;
 type GenResult<T> = Result<T, GenError>;
@@ -38,22 +38,30 @@ fn resize(tiles: Vec<DynamicImage>) -> Vec<AverageColor> {
     let mut resized_tiles = Vec::new();
     for tile in tiles {
         let resized = tile.resize(50,50,FilterType::Nearest);
+        let average_color = get_average_color(&resized);
 
-        let (mut r,mut g, mut b): (usize,usize,usize) = (0,0,0);
-        for p in resized.pixels() {
-            let channels = p.2.channels();
-            
-            r += channels[0] as usize;
-            g += channels[1] as usize;
-            b += channels[2] as usize;
+        resized_tiles.push((resized,average_color));
         }
-        let p_count = (resized.width() * resized.height()) as usize;
-        let (r,g,b) = (r/p_count,g/p_count,b/p_count);
-
-        resized_tiles.push((resized,[r as u8,g as u8,b as u8]));
-    }
 
     resized_tiles
+}
+
+fn get_average_color(image: &DynamicImage) -> [u8;3] {
+    let mut rgb: [usize;3] = [0;3];
+    for p in image.pixels() {
+        let pix = p.2.to_rgb();
+        let channels = pix.channels();
+
+        rgb[0] += channels[0] as usize;
+        rgb[1] += channels[1] as usize;
+        rgb[2] += channels[2] as usize;
+        }
+    let p_count = (image.width() * image.height()) as usize;
+    for i in 0..rgb.len() {
+        rgb[i] = rgb[i] / p_count;
+    }
+
+    [rgb[0] as u8, rgb[1] as u8,rgb[2] as u8]
 }
 
 // Select the tile that is the closest match to out target RGB color value
@@ -72,29 +80,7 @@ fn nearest<'t>(target: &[u8], tiles: &'t Vec<AverageColor>) -> &'t DynamicImage 
     nearest_tile
 }
 
-// Euclidean distance between 2 RBG color values
-fn distance(p1: &[u8], p2: &[u8]) -> f64 {
-    let square = |x| x * x;
-    let diff_sum = (square(p1[0] as i32 - p2[0] as i32) 
-        + square(p1[1] as i32 - p2[1] as i32) 
-        + square(p1[2] as i32 - p2[2] as i32)) as f64;
-
-    diff_sum.sqrt()
-}
-    let mut smallest_dist = f64::MAX;
-
-    for tile in tiles {
-        let dist = distance(target,&tile.1);
-        if dist < smallest_dist { 
-            smallest_dist = dist;
-            nearest_tile = &tile.0;
-        }
-    }
-
-    nearest_tile
-}
-
-// Euclidean distance between 2 RBG color values
+// Euclidean distance between 2 RGB color values
 fn distance(p1: &[u8], p2: &[u8]) -> f64 {
     let square = |x| x * x;
     let diff_sum = (square(p1[0] as i32 - p2[0] as i32) 
