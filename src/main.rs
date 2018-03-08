@@ -16,9 +16,32 @@ type AverageColor = (DynamicImage,[u8;3]);
 */
 
 fn main() {
-    println!("Hello, world!");
+// Create photomosaic a based on an original image formed from tiles
+fn create_mosaic<P>(original: DynamicImage,output: P,tiles: Vec<AverageColor>)
+    where P: AsRef<Path>
+{
+    let mut original = original.clone();
+    let (width, height) = original.dimensions();
+
+    let mut new_image = RgbaImage::new(width,height);
+    let tile_size = 10;
+
+    let (mut x,mut y) = (0,0);
+    while y < height {
+        x = 0;
+        while x < width {
+            let cell = original.crop(x,y,tile_size,tile_size);
+            let average_color = get_average_color(&cell);
+            let nearest = nearest(&average_color,&tiles);
+
+            new_image.copy_from(nearest,x,y);
+            x += tile_size;
+        }
+        y += tile_size
 }
 
+    new_image.save(output).expect("Error saving new_mosaic.png");
+}
 
 // Load images to be used as tiles in a mosaic
 fn load_tiles() -> GenResult<Vec<DynamicImage>> {
