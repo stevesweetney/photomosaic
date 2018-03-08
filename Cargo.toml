@@ -5,3 +5,4 @@ authors = ["Steve Sweetney <stevesweetney@gmail.com>"]
 
 [dependencies]
 image = "*"
+rayon = "1.0"

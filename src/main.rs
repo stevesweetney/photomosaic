@@ -1,10 +1,12 @@
 extern crate image;
+extern crate rayon;
 
 use std::fs::File;
 use std::io;
 use std::path::Path;
 use std::f64;
 use image::{DynamicImage, open, FilterType, GenericImage, Pixel,RgbaImage,imageops};
+use rayon::prelude::*;
 
 type GenError = Box<std::error::Error>;
 type GenResult<T> = Result<T, GenError>;
@@ -58,14 +60,14 @@ fn load_tiles() -> GenResult<Vec<DynamicImage>> {
 
 // Resize and calculate the average color of each image
 fn resize(tiles: Vec<DynamicImage>) -> Vec<AverageColor> {
-    let mut resized_tiles = Vec::new();
-    for tile in tiles {
+    let resized_tiles = tiles.par_iter()
+        .map(|tile| -> AverageColor {
         let resized = tile.resize(50,50,FilterType::Nearest);
         let average_color = get_average_color(&resized);
 
-        resized_tiles.push((resized,average_color));
-        }
-
+            (resized,average_color)
+        })
+        .collect();
     resized_tiles
 }
 
