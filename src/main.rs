@@ -108,11 +108,11 @@ fn nearest<'t>(target: &[u8], tiles: &'t Vec<AverageColor>) -> &'t DynamicImage 
 // Euclidean distance between 2 RGB color values
 fn distance(p1: &[u8], p2: &[u8]) -> f64 {
     let square = |x| x * x;
-    let diff_sum = (square(p1[0] as i32 - p2[0] as i32) 
+    let euclidean_squared = (square(p1[0] as i32 - p2[0] as i32) 
         + square(p1[1] as i32 - p2[1] as i32) 
         + square(p1[2] as i32 - p2[2] as i32)) as f64;
 
-    diff_sum.sqrt()
+    euclidean_squared
 }
 
 #[cfg(test)]
@@ -121,14 +121,16 @@ mod test {
 
     #[test]
     fn test_distance() {
+        let square = |x| x*x;
+
         let black = &[0,0,0];
         let white = &[255,255,255];
 
         let p = &[121,30,177];
         let q = &[237,22,88];
 
-        assert_eq!(distance(black,white).floor(),441.0);
-        assert_eq!(distance(p,q).floor(),146.0);
+        assert!(f64::abs(distance(black,white).floor() - square(441.672956)) <= 1.0);
+        assert!(f64::abs(distance(p,q).floor() - square(146.427456)) <= 1.0);
     }
 
     #[test]
