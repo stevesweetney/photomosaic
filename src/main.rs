@@ -84,22 +84,35 @@ fn resize(tiles: Vec<DynamicImage>) -> Vec<AverageColor> {
     resized_tiles
 }
 
-fn get_average_color(image: &DynamicImage) -> [u8;3] {
+fn get_average_color(image: &DynamicImage) -> ([u8;3], RGBHistogram) {
     let mut rgb: [usize;3] = [0;3];
+    let mut r_histogram: [u32;256] = [0;256];
+    let mut g_histogram: [u32;256] = [0;256];
+    let mut b_histogram: [u32;256] = [0;256];
     for p in image.pixels() {
         let pix = p.2.to_rgb();
         let channels = pix.channels();
 
-        rgb[0] += channels[0] as usize;
-        rgb[1] += channels[1] as usize;
-        rgb[2] += channels[2] as usize;
+        let red = channels[0] as usize;
+        let green = channels[1] as usize;
+        let blue = channels[2] as usize;
+
+        rgb[0] += red;
+        r_histogram[red] += 1;
+
+        rgb[1] += green;
+        g_histogram[green] += 1;
+        
+        rgb[2] += blue;
+        b_histogram[blue] += 1;
         }
     let p_count = (image.width() * image.height()) as usize;
     for i in 0..rgb.len() {
         rgb[i] = rgb[i] / p_count;
     }
 
-    [rgb[0] as u8, rgb[1] as u8,rgb[2] as u8]
+    ([rgb[0] as u8, rgb[1] as u8,rgb[2] as u8], 
+        RGBHistogram{r_histogram,g_histogram,b_histogram,image})
 }
 
 // Select the tile that is the closest match to out target RGB color value
