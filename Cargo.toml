@@ -5,4 +5,5 @@ authors = ["Steve Sweetney <stevesweetney@gmail.com>"]
 
 [dependencies]
 image = "*"
+imageproc = "0.14.0"
 rayon = "1.0"

@@ -1,16 +1,29 @@
 extern crate image;
+extern crate imageproc;
 extern crate rayon;
 
 use std::fs::File;
 use std::io;
 use std::path::Path;
 use std::f64;
-use image::{DynamicImage, open, FilterType, GenericImage, Pixel,RgbaImage,imageops};
+use image::{DynamicImage, open, FilterType, GenericImage, Pixel,RgbaImage,GrayImage};
+use image::math::utils;
+use image::imageops::colorops;
+use imageproc::edges;
 use rayon::prelude::*;
+use rayon::iter::Either;
 
 type GenError = Box<std::error::Error>;
 type GenResult<T> = Result<T, GenError>;
+use rayon::iter::Either;
 type AverageColor = (DynamicImage,[u8;3]);
+
+struct RGBHistogram<'im> {
+    r_histogram: [u32;256],
+    g_histogram: [u32;256],
+    b_histogram: [u32;256],
+    image: &'im DynamicImage
+}
 
 /*
 ** TODO: Prompt user for source image
@@ -115,6 +128,51 @@ fn distance(p1: &[u8], p2: &[u8]) -> f64 {
     euclidean_squared
 }
 
+// Analyze a RGBHistogram to determine if an image is made up of mostly one color
+fn is_homogenous(histo: RGBHistogram) -> bool {
+    let image = histo.image;
+
+    let red_max = histo.r_histogram.iter().max().unwrap();
+    let green_max = histo.g_histogram.iter().max().unwrap();
+    let blue_max = histo.b_histogram.iter().max().unwrap();
+
+    let range = |percent,val| -> (u32,u32) {
+        let range_percent = (256 * percent / 100) as u32;
+
+        let lo = utils::clamp(val - range_percent, 0,255);
+        let hi = utils::clamp(val + range_percent, 0,255);
+
+        (lo,hi)
+    };
+
+    let red_range = range(30,red_max);
+    let green_range = range(30,green_max);
+    let blue_range = range(30,blue_max);
+
+    let pixel_count = (image.width() * image.height()) * 80 / 100;
+    let (mut pixels_in_red, mut pixels_in_green,mut pixels_in_blue) = (0,0,0);
+
+    for p in image.pixels() {
+        let pix = p.2.to_rgb();
+        let channels = pix.channels();
+
+        let (red,green,blue) = (channels[0] as u32,channels[1] as u32,channels[2] as u32);
+
+        if red >= red_range.0 && red <= red_range.1 {
+            pixels_in_red += 1;
+        }
+
+        if green >= green_range.0 && green <= green_range.1 {
+            pixels_in_green += 1;
+        }
+
+        if blue >= blue_range.0 && blue <= blue_range.1 {
+            pixels_in_blue += 1;
+        }
+    }
+
+    pixels_in_red >= pixel_count && pixels_in_green >= pixel_count && pixels_in_blue >= pixel_count
+}
 #[cfg(test)]
 mod test {
     use super::distance;
