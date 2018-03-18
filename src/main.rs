@@ -15,8 +15,26 @@ use rayon::iter::Either;
 
 type GenError = Box<std::error::Error>;
 type GenResult<T> = Result<T, GenError>;
-use rayon::iter::Either;
-type AverageColor = (DynamicImage,[u8;3]);
+enum AverageColor {
+    Homogenous { image: DynamicImage, color: [u8;3] },
+    Non { image: DynamicImage, color: [u8;3] }
+}
+
+impl AverageColor {
+    fn get_image(&self) -> &DynamicImage {
+        match *self {
+            AverageColor::Homogenous { ref image,.. } => image,
+            AverageColor::Non { ref image,.. } => image
+        }
+    }
+
+    fn get_color(&self) -> &[u8] {
+        match *self {
+            AverageColor::Homogenous { ref color,.. } => color,
+            AverageColor::Non { ref color,.. } => color
+        }
+    }
+}
 
 struct RGBHistogram<'im> {
     r_histogram: [u32;256],
@@ -118,14 +136,14 @@ fn get_average_color(image: &DynamicImage) -> ([u8;3], RGBHistogram) {
 
 // Select the tile that is the closest match to out target RGB color value
 fn nearest<'t>(target: &[u8], tiles: &'t Vec<AverageColor>) -> &'t DynamicImage {
-    let mut nearest_tile = &tiles[0].0;
+    let mut nearest_tile = tiles[0].get_image();
     let mut smallest_dist = f64::MAX;
 
     for tile in tiles {
-        let dist = distance(target,&tile.1);
+        let dist = distance(target,tile.get_color());
         if dist < smallest_dist { 
             smallest_dist = dist;
-            nearest_tile = &tile.0;
+            nearest_tile = tile.get_image();
         }
     }
 
