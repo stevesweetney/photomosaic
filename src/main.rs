@@ -58,14 +58,15 @@ fn create_mosaic<P>(original: DynamicImage,output: P,tiles: Vec<AverageColor>)
     new_image.save(output).expect("Error saving new_mosaic.png");
 }
 
-// Load images to be used as tiles in a mosaic
+// Load and resize images to be used as tiles in a mosaic
 fn load_tiles() -> GenResult<Vec<DynamicImage>> {
     let tiles_path = Path::new("tiles/");
     let mut tiles = Vec::new();
 
     for entry_result in tiles_path.read_dir()? {
         let entry = entry_result?;
-        tiles.push(open(entry.path())?);
+        let image = open(entry.path())?;
+        tiles.push(image.resize(50,50,FilterType::Nearest));
     }
 
     Ok(tiles)
