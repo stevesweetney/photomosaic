@@ -90,17 +90,25 @@ fn load_tiles() -> GenResult<Vec<DynamicImage>> {
     Ok(tiles)
 }
 
-// Resize and calculate the average color of each image
-fn resize(tiles: Vec<DynamicImage>) -> Vec<AverageColor> {
-    let resized_tiles = tiles.par_iter()
-        .map(|tile| -> AverageColor {
-        let resized = tile.resize(50,50,FilterType::Nearest);
-        let average_color = get_average_color(&resized);
+// Partition and calculate the average color of each image
+fn partition(tiles: Vec<DynamicImage>) -> (Vec<AverageColor>,Vec<AverageColor>) {
+    let (left, mut right): (Vec<AverageColor>, Vec<AverageColor>) = tiles.into_par_iter()
+        .partition_map(|tile|  {
+            let (average_color,homogenous) = {
+                let (color,histo) = get_average_color(&tile);
+                (color,is_homogenous(histo))
+            };
+          
+            if homogenous { Either::Left(AverageColor::Homogenous{ image: tile,color: average_color }) }
+            else { Either::Right(AverageColor::Non{image: tile,color: average_color, edges: None })}
+        });
 
-            (resized,average_color)
-        })
-        .collect();
-    resized_tiles
+    for im in right.iter_mut() {
+        if let AverageColor::Non { ref image, ref mut edges,..} = *im {
+            *edges = Some(edge_map(image));
+        }
+    }
+    (left,right)
 }
 
 fn get_average_color(image: &DynamicImage) -> ([u8;3], RGBHistogram) {
