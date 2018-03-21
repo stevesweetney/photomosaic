@@ -17,7 +17,7 @@ type GenError = Box<std::error::Error>;
 type GenResult<T> = Result<T, GenError>;
 enum AverageColor {
     Homogenous { image: DynamicImage, color: [u8;3] },
-    Non { image: DynamicImage, color: [u8;3] }
+    Non { image: DynamicImage, color: [u8;3], edges: Option<GrayImage> }
 }
 
 impl AverageColor {
@@ -205,6 +205,48 @@ fn is_homogenous(histo: RGBHistogram) -> bool {
 
     pixels_in_red >= pixel_count && pixels_in_green >= pixel_count && pixels_in_blue >= pixel_count
 }
+
+/*
+* Compares the number of different pixels in 2 grayscale images.
+* Returns true if the number of different pixels is less than or equal to a 15%
+* of the total pixels.
+*/
+fn edge_map_compare(left: &GrayImage, right: & GrayImage) -> bool {
+    //assert_eq!(left.dimensions(),right.dimensions(), "Error comparing edge maps: unequal dimensions");
+
+    let max_pixel_diff = (left.width() * left.height() * 15) / 100; 
+    let mut total_diff = 0;
+    for (a, b) in left.pixels().zip(right.pixels()) {
+        if a.channels() != b.channels() { total_diff += 1; };
+    }
+
+    total_diff <= max_pixel_diff
+}
+
+fn edge_map(image: &DynamicImage) -> GrayImage {
+    let kernel = [
+        1.0/9.0,1.0/9.0,1.0/9.0,
+        1.0/9.0,1.0/9.0,1.0/9.0,
+        1.0/9.0,1.0/9.0,1.0/9.0
+    ];
+    let gray_image = colorops::grayscale(&image.filter3x3(&kernel));
+
+    let mut average = {
+        let mut sum = 0;
+        for p in gray_image.pixels() {
+            sum += p.channels()[0] as u32;
+        }
+
+        (sum / (gray_image.width() * gray_image.height())) as f32
+    };
+
+    if average == 0.0 { average = 255.0 }
+    let lo = average*0.66;
+    let hi = average*1.33;
+    
+    edges::canny(&gray_image,lo,hi)
+}
+
 #[cfg(test)]
 mod test {
     use super::distance;
