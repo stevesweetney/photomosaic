@@ -172,9 +172,19 @@ fn distance(p1: &[u8], p2: &[u8]) -> f64 {
 fn is_homogenous(histo: RGBHistogram) -> bool {
     let image = histo.image;
 
-    let red_max = histo.r_histogram.iter().max().unwrap();
-    let green_max = histo.g_histogram.iter().max().unwrap();
-    let blue_max = histo.b_histogram.iter().max().unwrap();
+    let max_index = |histo: [u32;256]| -> usize {
+        let mut i = 0;
+        for (j, &val) in histo.iter().enumerate() {
+            if val > histo[i] {
+                i = j;
+            }
+        }
+        i
+    };
+
+    let red_max = max_index(histo.r_histogram);
+    let green_max = max_index(histo.g_histogram);
+    let blue_max = max_index(histo.b_histogram);
 
     let range = |percent,val| -> (u32,u32) {
         let range_percent = (256 * percent / 100) as u32;
@@ -185,9 +195,9 @@ fn is_homogenous(histo: RGBHistogram) -> bool {
         (lo,hi)
     };
 
-    let red_range = range(30,red_max);
-    let green_range = range(30,green_max);
-    let blue_range = range(30,blue_max);
+    let red_range = range(30,red_max as u32);
+    let green_range = range(30,green_max as u32);
+    let blue_range = range(30,blue_max as u32);
 
     let pixel_count = (image.width() * image.height()) * 80 / 100;
     let (mut pixels_in_red, mut pixels_in_green,mut pixels_in_blue) = (0,0,0);
