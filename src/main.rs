@@ -88,14 +88,14 @@ fn create_mosaic<P>(mut original: DynamicImage,output: P,tiles: (Vec<AverageColo
 }
 
 // Load and resize images to be used as tiles in a mosaic
-fn load_tiles() -> GenResult<Vec<DynamicImage>> {
+fn load_tiles(tile_size: u32) -> GenResult<Vec<DynamicImage>> {
     let tiles_path = Path::new("tiles/");
     let mut tiles = Vec::new();
 
     for entry_result in tiles_path.read_dir()? {
         let entry = entry_result?;
         let image = open(entry.path())?;
-        tiles.push(image.resize(50,50,FilterType::Nearest));
+        tiles.push(image.resize_exact(tile_size,tile_size,FilterType::Nearest));
     }
 
     Ok(tiles)
