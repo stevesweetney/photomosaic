@@ -143,12 +143,19 @@ fn get_average_color(image: &DynamicImage) -> ([u8;3], RGBHistogram) {
 }
 
 // Select the tile that is the closest match to out target RGB color value
-fn nearest<'t>(target: &[u8], tiles: &'t Vec<AverageColor>) -> &'t DynamicImage {
+fn nearest<'t>(target :AverageColor, tiles: &'t Vec<AverageColor>) -> &'t DynamicImage {
     let mut nearest_tile = tiles[0].get_image();
     let mut smallest_dist = f64::MAX;
 
     for tile in tiles {
-        let dist = distance(target,tile.get_color());
+        if let AverageColor::Non { ref edges,..} = target {
+            let target_edges = edges.as_ref().unwrap();
+            if let AverageColor:: Non { ref edges,.. } = *tile {
+                let tile_edges = edges.as_ref().unwrap();
+                if !edge_map_compare(target_edges,tile_edges) { continue }
+            }
+        }
+        let dist = distance(target.get_color(),tile.get_color());
         if dist < smallest_dist { 
             smallest_dist = dist;
             nearest_tile = tile.get_image();
