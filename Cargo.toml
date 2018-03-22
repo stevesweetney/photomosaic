@@ -2,8 +2,10 @@
 name = "photomosaic"
 version = "0.1.0"
 authors = ["Steve Sweetney <stevesweetney@gmail.com>"]
+description = "Generate a photomosaic from a source image and a directory of tiles."
 
 [dependencies]
 image = "*"
 imageproc = "0.14.0"
 rayon = "1.0"
+structopt = "0.2"

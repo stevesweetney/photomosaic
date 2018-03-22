@@ -1,10 +1,10 @@
+#[macro_use]
+extern crate structopt;
 extern crate image;
 extern crate imageproc;
 extern crate rayon;
 
-use std::fs::File;
-use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::f64;
 use image::{DynamicImage, open, FilterType, GenericImage, Pixel,RgbaImage,GrayImage};
 use image::math::utils;
@@ -12,9 +12,31 @@ use image::imageops::colorops;
 use imageproc::edges;
 use rayon::prelude::*;
 use rayon::iter::Either;
+use structopt::StructOpt;
 
 type GenError = Box<std::error::Error>;
 type GenResult<T> = Result<T, GenError>;
+
+#[derive(StructOpt, Debug)]
+#[structopt(name = "photomosaic")]
+struct Opt {
+    /// Input file
+    #[structopt(short = "i", long = "input", parse(from_os_str))]
+    input: PathBuf,
+
+    /// Output file, image format is based on the extension
+    #[structopt(short = "o", long = "output", parse(from_os_str))]
+    output: PathBuf,
+
+    /// Directory containing images to be used as tiles
+    #[structopt(short = "t", long = "tiles", parse(from_os_str))]
+    tiles_dir: PathBuf,
+
+    /// Size of tile images
+    #[structopt(short = "s", long = "size", default_value = "30")]
+    tile_size: u32
+}
+
 enum AverageColor {
     Homogenous { image: DynamicImage, color: [u8;3] },
     Non { image: DynamicImage, color: [u8;3], edges: Option<GrayImage> }
@@ -43,20 +65,29 @@ struct RGBHistogram<'im> {
     image: &'im DynamicImage
 }
 
-/*
-** TODO: Prompt user for source image
-** Process source image (make a grid based on tile size?)
-*/
-
 fn main() {
+    let opt = Opt::from_args();
+
+    if opt.output.exists() {
+        eprintln!("Error: an entry already exists at the output path");
+        ::std::process::exit(1);
+    }
+
+    let original = open(opt.input)
+        .expect("Error opening target image");
+    
+    let raw_tiles = load_tiles(opt.tile_size).expect("Error opening tiles directory");
+    let resized_tiles = partition(raw_tiles);
+    create_mosaic(original,opt.output,resized_tiles,opt.tile_size);
+}
+
 // Create photomosaic a based on an original image formed from tiles
 fn create_mosaic<P>(mut original: DynamicImage,output: P,tiles: (Vec<AverageColor>,Vec<AverageColor>), tile_size: u32)
     where P: AsRef<Path>
 {
-    let mut original = original.clone();
     let (width, height) = original.dimensions();
     let (homo, edges) = tiles;
-
+    
     let mut new_image = RgbaImage::new(width,height);
 
     let (mut x,mut y) = (0,0);
@@ -91,7 +122,7 @@ fn create_mosaic<P>(mut original: DynamicImage,output: P,tiles: (Vec<AverageColo
 fn load_tiles(tile_size: u32) -> GenResult<Vec<DynamicImage>> {
     let tiles_path = Path::new("tiles/");
     let mut tiles = Vec::new();
-
+    
     for entry_result in tiles_path.read_dir()? {
         let entry = entry_result?;
         let image = open(entry.path())?;
@@ -143,7 +174,7 @@ fn get_average_color(image: &DynamicImage) -> ([u8;3], RGBHistogram) {
         
         rgb[2] += blue;
         b_histogram[blue] += 1;
-        }
+    }
     let p_count = (image.width() * image.height()) as usize;
     for i in 0..rgb.len() {
         rgb[i] = rgb[i] / p_count;
