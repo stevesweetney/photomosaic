@@ -45,15 +45,13 @@ enum AverageColor {
 impl AverageColor {
     fn get_image(&self) -> &DynamicImage {
         match *self {
-            AverageColor::Homogenous { ref image,.. } => image,
-            AverageColor::Non { ref image,.. } => image
+            AverageColor::Homogenous { ref image,.. } | AverageColor::Non { ref image,.. } => image,
         }
     }
 
     fn get_color(&self) -> &[u8] {
         match *self {
-            AverageColor::Homogenous { ref color,.. } => color,
-            AverageColor::Non { ref color,.. } => color
+            AverageColor::Homogenous { ref color,.. } | AverageColor::Non { ref color,.. } => color,
         }
     }
 }
@@ -100,14 +98,12 @@ fn create_mosaic<P>(mut original: DynamicImage,output: P,tiles: (Vec<AverageColo
                 (color,is_homogenous(histo))
             };
 
-            let nearest_tile: &DynamicImage;
-            if homogenous {
-                nearest_tile = nearest(AverageColor::Homogenous { image: cell, color: average_color }
-                    ,&homo);
+            let nearest_tile = if homogenous {
+                nearest(&AverageColor::Homogenous { image: cell, color: average_color } ,&homo)
             } else {
-                nearest_tile = nearest(AverageColor::Non { edges: Some(edge_map(&cell)), image: cell, color: average_color }
-                    ,&edges);
-            }
+                nearest(&AverageColor::Non { edges: Some(edge_map(&cell)), image: cell, color: average_color }
+                    ,&edges)
+            };
 
             new_image.copy_from(nearest_tile,x,y);
             x += tile_size;
@@ -145,7 +141,7 @@ fn partition(tiles: Vec<DynamicImage>) -> (Vec<AverageColor>,Vec<AverageColor>) 
             else { Either::Right(AverageColor::Non{image: tile,color: average_color, edges: None })}
         });
 
-    for im in edges.iter_mut() {
+    for im in &mut edges {
         if let AverageColor::Non { ref image, ref mut edges,..} = *im {
             *edges = Some(edge_map(image));
         }
@@ -176,8 +172,8 @@ fn get_average_color(image: &DynamicImage) -> ([u8;3], RGBHistogram) {
         b_histogram[blue] += 1;
     }
     let p_count = (image.width() * image.height()) as usize;
-    for i in 0..rgb.len() {
-        rgb[i] = rgb[i] / p_count;
+    for chan in &mut rgb {
+        *chan /= p_count;
     }
 
     ([rgb[0] as u8, rgb[1] as u8,rgb[2] as u8], 
@@ -185,12 +181,12 @@ fn get_average_color(image: &DynamicImage) -> ([u8;3], RGBHistogram) {
 }
 
 // Select the tile that is the closest match to out target RGB color value
-fn nearest<'t>(target :AverageColor, tiles: &'t Vec<AverageColor>) -> &'t DynamicImage {
+fn nearest<'t>(target: &AverageColor, tiles: &'t [AverageColor]) -> &'t DynamicImage {
     let mut nearest_tile = tiles[0].get_image();
     let mut smallest_dist = f64::MAX;
 
     for tile in tiles {
-        if let AverageColor::Non { ref edges,..} = target {
+        if let AverageColor::Non { ref edges,..} = *target {
             let target_edges = edges.as_ref().unwrap();
             if let AverageColor:: Non { ref edges,.. } = *tile {
                 let tile_edges = edges.as_ref().unwrap();
@@ -210,11 +206,10 @@ fn nearest<'t>(target :AverageColor, tiles: &'t Vec<AverageColor>) -> &'t Dynami
 // Euclidean distance between 2 RGB color values
 fn distance(p1: &[u8], p2: &[u8]) -> f64 {
     let square = |x| x * x;
-    let euclidean_squared = (square(p1[0] as i32 - p2[0] as i32) 
-        + square(p1[1] as i32 - p2[1] as i32) 
-        + square(p1[2] as i32 - p2[2] as i32)) as f64;
+    f64::from(square(i32::from(p1[0]) - i32::from(p2[0])) 
+        + square(i32::from(p1[1]) - i32::from(p2[1])) 
+        + square(i32::from(p1[2]) - i32::from(p2[2])))
 
-    euclidean_squared
 }
 
 // Analyze a RGBHistogram to determine if an image is made up of mostly one color
@@ -255,7 +250,7 @@ fn is_homogenous(histo: RGBHistogram) -> bool {
         let pix = p.2.to_rgb();
         let channels = pix.channels();
 
-        let (red,green,blue) = (channels[0] as u32,channels[1] as u32,channels[2] as u32);
+        let (red,green,blue) = (u32::from(channels[0]),u32::from(channels[1]),u32::from(channels[2]));
 
         if red >= red_range.0 && red <= red_range.1 {
             pixels_in_red += 1;
@@ -301,7 +296,7 @@ fn edge_map(image: &DynamicImage) -> GrayImage {
     let mut average = {
         let mut sum = 0;
         for p in gray_image.pixels() {
-            sum += p.channels()[0] as u32;
+            sum += u32::from(p.channels()[0]);
         }
 
         (sum / (gray_image.width() * gray_image.height())) as f32
