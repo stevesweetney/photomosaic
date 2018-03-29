@@ -2,6 +2,8 @@
 
 A photomosaic generator written in Rust
 
+![Example](https://dl.dropboxusercontent.com/s/jimrm0iksvbh52o/city-hall-philly_comparison.png?dl=0)
+
 ### How it works
 
 Scans the directory provided as input for images to resize and calculate their mean color values. Then, it partitions the images; those with distinct edges are separated from images that are made of mostly 1 color. The input image is split into cells  and a tile selected to replace a cell is selected by minimizing the distance between their mean color values and/or their edge maps.
@@ -32,3 +34,7 @@ Provide a large pool of images (1000+)
 
 Use a smaller size for tiles if you want a mosaic with more detail. Experiment with different sizes and images
 
+### Examples
+
+![Example](https://dl.dropboxusercontent.com/s/ius0l1q7twcvvuh/mosaic_comparison_goku.png?dl=0)
+![Example](https://dl.dropboxusercontent.com/s/jd7ru2r3rhm6hhj/owl_comparison.png?dl=0)
