@@ -74,7 +74,7 @@ fn main() {
     let original = open(opt.input)
         .expect("Error opening target image");
     
-    let raw_tiles = load_tiles(opt.tile_size).expect("Error opening tiles directory");
+    let raw_tiles = load_tiles(&opt.tiles_dir,opt.tile_size).expect("Error opening tiles directory");
     let resized_tiles = partition(raw_tiles);
     create_mosaic(original,opt.output,resized_tiles,opt.tile_size);
 }
@@ -115,8 +115,7 @@ fn create_mosaic<P>(mut original: DynamicImage,output: P,tiles: (Vec<AverageColo
 }
 
 // Load and resize images to be used as tiles in a mosaic
-fn load_tiles(tile_size: u32) -> GenResult<Vec<DynamicImage>> {
-    let tiles_path = Path::new("tiles/");
+fn load_tiles(tiles_path: &PathBuf, tile_size: u32) -> GenResult<Vec<DynamicImage>> {
     let mut tiles = Vec::new();
     
     for entry_result in tiles_path.read_dir()? {
