@@ -2,6 +2,8 @@
 
 A photomosaic generator written in Rust
 
+[DEMO](https://secure-ocean-69604.herokuapp.com/)
+
 ![Example](https://dl.dropboxusercontent.com/s/jimrm0iksvbh52o/city-hall-philly_comparison.png?dl=0)
 
 ### How it works
