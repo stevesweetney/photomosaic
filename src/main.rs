@@ -6,9 +6,8 @@ extern crate rayon;
 
 use std::path::{Path, PathBuf};
 use std::f64;
-use image::{DynamicImage, open, FilterType, GenericImage, Pixel,RgbaImage,GrayImage};
-use image::math::utils;
-use image::imageops::colorops;
+use image::{DynamicImage, open, GenericImage, Pixel,RgbaImage,GrayImage, GenericImageView};
+use image::imageops::{colorops, FilterType};
 use imageproc::edges;
 use rayon::prelude::*;
 use rayon::iter::Either;
@@ -16,6 +15,8 @@ use structopt::StructOpt;
 
 type GenError = Box<std::error::Error>;
 type GenResult<T> = Result<T, GenError>;
+
+mod utils;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "photomosaic")]
