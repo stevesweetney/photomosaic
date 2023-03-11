@@ -83,9 +83,9 @@ fn create_mosaic<P>(mut original: DynamicImage,output: P,tiles: (Vec<AverageColo
     
     let mut new_image = RgbaImage::new(width,height);
 
-    let (mut x,mut y) = (0,0);
+    let mut y = 0;
     while y < height {
-        x = 0;
+        let mut x = 0;
         while x < width {
             let cell = original.crop(x,y,tile_size,tile_size);
             let (average_color,homogenous) = {
@@ -100,7 +100,9 @@ fn create_mosaic<P>(mut original: DynamicImage,output: P,tiles: (Vec<AverageColo
                     ,&edges)
             };
 
-            new_image.copy_from(nearest_tile,x,y);
+            if let Err(err_type) = new_image.copy_from(nearest_tile,x,y) {
+                eprintln!("{}", err_type);
+            }
             x += tile_size;
         }
         y += tile_size
@@ -110,7 +112,7 @@ fn create_mosaic<P>(mut original: DynamicImage,output: P,tiles: (Vec<AverageColo
 }
 
 // Load and resize images to be used as tiles in a mosaic
-fn load_tiles(tiles_path: &PathBuf, tile_size: u32) -> GenResult<Vec<DynamicImage>> {
+fn load_tiles(tiles_path: &Path, tile_size: u32) -> GenResult<Vec<DynamicImage>> {
     let mut tiles = Vec::new();
     
     for entry_result in tiles_path.read_dir()? {
