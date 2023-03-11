@@ -1,9 +1,3 @@
-#[macro_use]
-extern crate structopt;
-extern crate image;
-extern crate imageproc;
-extern crate rayon;
-
 use std::path::{Path, PathBuf};
 use std::f64;
 use image::{DynamicImage, open, GenericImage, Pixel,RgbaImage,GrayImage, GenericImageView};
@@ -13,7 +7,7 @@ use rayon::prelude::*;
 use rayon::iter::Either;
 use structopt::StructOpt;
 
-type GenError = Box<std::error::Error>;
+type GenError = Box<dyn std::error::Error>;
 type GenResult<T> = Result<T, GenError>;
 
 mod utils;

@@ -3,6 +3,7 @@ name = "photomosaic"
 version = "0.1.0"
 authors = ["Steve Sweetney <stevesweetney@gmail.com>"]
 description = "Generate a photomosaic from a source image and a directory of tiles."
+edition = "2021"
 
 [dependencies]
 image = "0.24.5"
